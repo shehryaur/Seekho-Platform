@@ -1,17 +1,6 @@
 """
-ui_style.py  --  Seekho Platform  Visual Layer  (v4 - all bugs fixed)
+ui_style.py  --  Seekho Platform  Visual Layer  
 
-Changes from v3:
-  FIX 1  Splash: set splash_done=True immediately, return False always.
-          Overlay is position:fixed CSS-only animation. App renders underneath.
-          No st.stop() needed. No blank-page-after-fade.
-  FIX 2  Background: .stApp gets the gradient directly (no more transparent+bg-layer trick).
-          Orbs still render but are decorative, not the primary background.
-  FIX 3  Sound: AudioContext unlocked on first user gesture in inject_all().
-          play_success_sound() accesses the unlocked ctx via window.parent.
-          height=1 (not 0) on the iframe so browsers don't skip JS.
-  FIX 4  copy_button: uses json.dumps() for safe JS string embedding.
-  FIX 5  analytics call moved out to avoid per-rerun Supabase call.
 """
 
 import json

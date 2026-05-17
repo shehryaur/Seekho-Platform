@@ -1,15 +1,10 @@
 """
-database.py — Seekho.io Supabase integration layer.
+database.py — Seekho Platform Supabase integration layer (v3).
 
-Fixes over v1:
-- get_supabase_client() uses @st.cache_resource (true singleton, one connection per app process)
-- seed_syllabus() batch inserts 50 rows per request instead of 1 (500+ → ~10 HTTP calls)
-- get_district() no longer double-nests cached calls — iterates local list directly
-- All query functions have explicit try/except with fallback to pctb_syllabus.py
-- All exported functions have clear docstrings
 """
 
 import os
+import json as _json
 from typing import Optional
 import streamlit as st
 
@@ -197,7 +192,7 @@ def get_district(name: str) -> dict:
     }
 
 
-# ── Analytics and persistence ────────────────────────────────────────────────
+# ── Lesson persistence ───────────────────────────────────────────────────────
 
 def save_lesson(
     school_name: str,
@@ -265,15 +260,22 @@ def get_lesson_by_token(token: str) -> Optional[dict]:
     return None
 
 
-def save_waitlist_entry(phone: str, school: str, district: str) -> bool:
-    """Add a phone number to the Pro waitlist table."""
+# ── FEATURE 8: WAITLIST ──────────────────────────────────────────────────────
+
+def save_waitlist_entry(phone: str, school: str, district: str = "") -> bool:
+    """
+    Insert a Pro waitlist signup into the `waitlist` table.
+
+    Columns: phone, school, district, created_at (auto).
+    Returns True on success, False on failure (silent).
+    """
     client = get_supabase_client()
     if not client:
         return False
     try:
         client.table("waitlist").insert({
-            "phone": phone,
-            "school": school,
+            "phone":    phone,
+            "school":   school,
             "district": district,
         }).execute()
         return True
@@ -281,11 +283,146 @@ def save_waitlist_entry(phone: str, school: str, district: str) -> bool:
         return False
 
 
+# ── FEATURE 9: AI FEEDBACK LOOP ──────────────────────────────────────────────
+
+def log_feedback(
+    rating:      str,
+    district:    str,
+    class_num:   int,
+    subject:     str,
+    chapter:     str,
+    topic:       str,
+    language:    str,
+    lesson_json: str,
+) -> bool:
+    """
+    Persist a user's 👍/👎 rating + full lesson context to the `feedback` table.
+
+    Args:
+        rating:      "good" or "bad"
+        district:    Selected district (e.g. "Lahore")
+        class_num:   Class number 1-12
+        subject:     Subject name
+        chapter:     Chapter title
+        topic:       Specific topic or "Full Chapter Overview"
+        language:    "English" | "Roman Urdu" | "Pure Urdu (Script)"
+        lesson_json: Full lesson dict serialized as JSON string
+
+    Returns True on success, False on failure (silent — never blocks UI).
+    Called by seekho_v3.py inside a try/except — safe to fail.
+    """
+    client = get_supabase_client()
+    if not client:
+        return False
+
+    # Defensive: rating must be one of two values for the CHECK constraint
+    if rating not in ("good", "bad"):
+        rating = "bad"
+
+    # Make sure lesson_json is a string; accept dict and serialize defensively
+    if isinstance(lesson_json, (dict, list)):
+        try:
+            lesson_json = _json.dumps(lesson_json, ensure_ascii=False)
+        except Exception:
+            lesson_json = str(lesson_json)
+
+    try:
+        client.table("feedback").insert({
+            "rating":      rating,
+            "district":    district,
+            "class_num":   class_num,
+            "subject":     subject,
+            "chapter":     chapter,
+            "topic":       topic,
+            "language":    language,
+            "lesson_json": lesson_json,
+        }).execute()
+        return True
+    except Exception:
+        return False
+
+
+# ── FEATURE 10: USAGE ANALYTICS ──────────────────────────────────────────────
+
+def log_analytics(
+    district:    str,
+    class_num:   int,
+    subject:     str,
+    chapter:     str    = "",
+    language:    str    = "",
+    output_mode: str    = "Full Lesson Pack",
+) -> bool:
+    """
+    Silently record a successful lesson generation event to the `analytics` table.
+
+    Fires once per "Generate Lesson" success in seekho_v3.py.
+    Always wrapped in try/except by the caller — failure must never block UI.
+
+    Args:
+        district:    Selected district
+        class_num:   1-12
+        subject:     Subject name
+        chapter:     Chapter title (optional)
+        language:    Language mode (optional)
+        output_mode: Defaults to "Full Lesson Pack"
+
+    Returns True on success, False on failure.
+    """
+    client = get_supabase_client()
+    if not client:
+        return False
+    try:
+        client.table("analytics").insert({
+            "district":    district,
+            "class_num":   class_num,
+            "subject":     subject,
+            "chapter":     chapter,
+            "language":    language,
+            "output_mode": output_mode,
+        }).execute()
+        return True
+    except Exception:
+        return False
+
+
 def get_analytics_summary() -> dict:
-    """Return basic usage stats for the admin view."""
+    """
+    Return basic usage stats. Prefers the dedicated `analytics` table
+    (Feature 10) and falls back to `generated_lessons` so old deployments
+    keep working before the SQL migration is run.
+    """
     client = get_supabase_client()
     if not client:
         return {"total_lessons": 0, "db_connected": False}
+
+    # ── Preferred: analytics table ───────────────────────────────────────
+    try:
+        total_resp = (
+            client.table("analytics")
+            .select("id", count="exact")
+            .execute()
+        )
+        district_resp = (
+            client.table("analytics")
+            .select("district")
+            .order("created_at", desc=True)
+            .limit(500)
+            .execute()
+        )
+        from collections import Counter
+        district_counts = Counter(
+            r["district"] for r in district_resp.data if r.get("district")
+        )
+        return {
+            "total_lessons":  total_resp.count or 0,
+            "top_districts":  district_counts.most_common(5),
+            "db_connected":   True,
+            "source":         "analytics",
+        }
+    except Exception:
+        pass
+
+    # ── Fallback: generated_lessons ──────────────────────────────────────
     try:
         total_resp = (
             client.table("generated_lessons")
@@ -299,15 +436,15 @@ def get_analytics_summary() -> dict:
             .limit(200)
             .execute()
         )
-        # Count per district
         from collections import Counter
         district_counts = Counter(
             r["district"] for r in district_resp.data if r.get("district")
         )
         return {
-            "total_lessons": total_resp.count or 0,
-            "top_districts": district_counts.most_common(5),
-            "db_connected": True,
+            "total_lessons":  total_resp.count or 0,
+            "top_districts":  district_counts.most_common(5),
+            "db_connected":   True,
+            "source":         "generated_lessons",
         }
     except Exception:
         return {"total_lessons": 0, "db_connected": False}
@@ -334,7 +471,6 @@ def seed_syllabus(batch_size: int = 50) -> tuple[int, int]:
         print("ERROR: No Supabase client. Check SUPABASE_URL and SUPABASE_ANON_KEY.")
         return 0, 0
 
-    # Build the full list of rows to insert
     rows = []
     for class_num, subjects in PCTB_SYLLABUS.items():
         for subject, chapters in subjects.items():
@@ -370,7 +506,7 @@ def seed_syllabus(batch_size: int = 50) -> tuple[int, int]:
 def _local_districts() -> list[dict]:
     """
     Minimal district context data used when Supabase is unreachable.
-    This ensures the app is fully functional offline / before DB setup.
+    Ensures the app is fully functional offline / before DB setup.
     """
     return [
         {
