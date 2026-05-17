@@ -1,18 +1,3 @@
-"""
-seed_db.py — One-time database seeding script for Seekho.io
-
-Run this ONCE after setting up Supabase to populate the syllabus table.
-Do NOT run this from inside the Streamlit app.
-
-Usage:
-    python seed_db.py
-
-Requirements:
-    - SUPABASE_URL and SUPABASE_SERVICE_KEY set in .env file (NOT anon key — use service role key for seeding)
-    - pctb_syllabus.py in the same folder
-    - supabase Python package installed
-"""
-
 import os
 import sys
 

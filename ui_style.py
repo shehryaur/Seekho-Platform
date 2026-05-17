@@ -19,8 +19,8 @@ import streamlit as st
 import streamlit.components.v1 as _comp
 
 # ── BRAND ─────────────────────────────────────────────────────────────────────
-LOGO_URL      = "https://lh3.googleusercontent.com/d/12Bh_utuJwuGgDIvFr042gzrOj8Y5Tmsy"
-LOGO_FALLBACK = "https://drive.google.com/uc?export=view&id=12Bh_utuJwuGgDIvFr042gzrOj8Y5Tmsy"
+LOGO_URL      = "https://i.ibb.co/k2wpwPfV/download.png"
+LOGO_FALLBACK = "https://i.ibb.co/k2wpwPfV/download.png"
 PRIMARY   = "#1a7f4b"
 PRIMARY_D = "#15693e"
 

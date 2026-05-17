@@ -4,7 +4,6 @@ Covers Class 1 through Class 12, all major subjects.
 
 This is the authoritative seed file for Seekho.io's Supabase database.
 Source: Punjab Curriculum & Textbook Board official syllabi (from training knowledge).
-Run seed_database() once to populate Supabase. After that, maintain data in Supabase.
 """
 
 # Structure: { class_num: { subject: [ {chapter, topics: []} ] } }
