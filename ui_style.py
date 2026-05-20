@@ -640,11 +640,16 @@ def maybe_show_splash() -> bool:
     box-shadow: 0 12px 44px rgba(26,127,75,.42), 0 0 0 1px rgba(255,255,255,.07);
 }}
 #sp-title {{
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 2.75rem; font-weight: 800; letter-spacing: -.7px; margin: 0;
-    background: linear-gradient(90deg, #ffffff 0%, #a3e4c1 44%, #ffffff 84%);
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    font-size: 2.75rem; 
+    font-weight: 800; 
+    letter-spacing: -.7px; 
+    margin: 0;
+    background: linear-gradient(90deg, #1a7f4b 0%, #2ecc71 44%, #1a7f4b 84%);
     background-size: 200% auto;
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+    background-clip: text;
     animation: textUp .62s ease .72s both, shimmer 3.8s linear 1.4s infinite;
 }}
 #sp-tag {{
