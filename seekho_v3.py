@@ -671,13 +671,13 @@ if not st.session_state.lesson_json:
     fc1, fc2, fc3, fc4 = st.columns(4)
     cards = [
         ("", "PCTB-Aligned Lesson",
-         "Chapter-specific content mapped to your exact PCTB syllabus for Classes 1-12."),
-        ("", "Hyper-Local Examples",
-         "Every analogy uses real places, food, and occupations from your district."),
-        ("", "4-Tab Output",
+         "Complete lesson plans mapped perfectly to your exact textbook syllabus for Classes 1 to 12."),
+        ("", "District-Based Context",
+         "Every application and analogy uses real places, names, and occupations from your local area."),
+        ("", "Complete Lesson Suite",
          "Teacher Guide, Student Handbook, 40-Min Activity, and Quiz -- each in its own clean tab."),
-        ("", "Download + Share",
-         "DOCX for the print shop and a direct WhatsApp share link for student materials."),
+        ("", "Print & Share Ready",
+         "Download clean files for the local print shop or send student materials directly via WhatsApp."),
     ]
     for col, (icon, title, desc) in zip([fc1, fc2, fc3, fc4], cards):
         col.markdown(
