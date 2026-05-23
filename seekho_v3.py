@@ -1209,3 +1209,4 @@ st.caption(
     "Seekho Platform | PCTB-Aligned | Free for all Pakistani teachers | "
     "AI-generated content -- review before use | Not affiliated with PCTB or any government body."
     "Email us: [shehryar.hassan@uni.minerva.edu](mailto:shehryar.hassan@uni.minerva.edu)"
+)
